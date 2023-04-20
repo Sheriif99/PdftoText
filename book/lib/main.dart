@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'dart:math';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'dart:async';
 import 'package:pdf_text/pdf_text.dart';
 
@@ -90,6 +92,21 @@ class _MyAppState extends State<MyApp> {
 
   /// Reads the book
   Future _readWholeDoc() async {
+    // Check if it exists in cache
+    try{
+    await _readTextFromCache("The Da Vinci Code");
+
+    if (_text != "") {
+      print('Read from cache');
+      setState(() {
+        _buttonsEnabled = true;
+      });
+      return;
+    }}
+    catch(e){
+      print(e);
+    }
+
     if (_pdfDoc == null) {
       return;
     }
@@ -98,10 +115,30 @@ class _MyAppState extends State<MyApp> {
     });
 
     String text = await _pdfDoc!.text;
+    _saveTextToCache(text, "The Da Vinci Code");
+
 
     setState(() {
       _text = text;
       _buttonsEnabled = true;
+    });
+  }
+
+  Future _saveTextToCache(String text, String bookName) async {
+    Directory appDocDir = await getApplicationDocumentsDirectory();
+    String appDocPath = appDocDir.path;
+    File file = File('$appDocPath/$bookName.txt');
+    print('Saving to cache $appDocPath/$bookName.txt');
+    file.writeAsString(text);
+  }
+
+  Future _readTextFromCache(String bookName) async {
+    Directory appDocDir = await getApplicationDocumentsDirectory();
+    String appDocPath = appDocDir.path;
+    File file = File('$appDocPath/$bookName.txt');
+    String text = await file.readAsString();
+    setState(() {
+      _text = text;
     });
   }
 }
