@@ -1,107 +1,101 @@
-import 'dart:math';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'dart:async';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:pdf_text/pdf_text.dart';
+import 'package:book/pick_document.dart';
 
-void main() => runApp(MyApp());
-
-class MyApp extends StatefulWidget {
-  @override
-  _MyAppState createState() => _MyAppState();
+void main() {
+  runApp(MyApp());
 }
 
-class _MyAppState extends State<MyApp> {
-  PDFDoc? _pdfDoc;
-  String _text = "";
-
-  bool _buttonsEnabled = true;
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
 
   @override
-  void initState() {
-    super.initState();
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      home: HomePage(),
+    );
+  }
+}
+
+class HomePage extends StatefulWidget {
+  const HomePage({Key? key}) : super(key: key);
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  TextEditingController controller = TextEditingController();
+  
+  FlutterTts flutterTts = FlutterTts();
+
+  void stop() async {
+    await flutterTts.stop();
+  }
+
+  void speak({String? text}) async {
+    await flutterTts.speak(text!); 
   }
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-          appBar: AppBar(
-            title: const Text('PDF to Text'),
-          ),
-          body: Container(
-            alignment: Alignment.center,
-            padding: EdgeInsets.all(10),
-            child: ListView(
-              children: <Widget>[
-                TextButton(
-                  child: Text(
-                    "Pick book",
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  style: TextButton.styleFrom(
-                      padding: EdgeInsets.all(5),
-                      backgroundColor: Colors.blueAccent),
-                  onPressed: _pickPDFText,
-                ),
-                TextButton(
-                  child: Text(
-                    "Read book",
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  style: TextButton.styleFrom(
-                      padding: EdgeInsets.all(5),
-                      backgroundColor: Colors.blueAccent),
-                  onPressed: _buttonsEnabled ? _readWholeDoc : () {},
-                ),
-                Padding(
-                  child: Text(
-                    _pdfDoc == null
-                        ? "Pick a new PDF and wait for it to load..."
-                        : "PDF loaded, ${_pdfDoc!.length} pages\n",
-                    style: TextStyle(fontSize: 18),
-                    textAlign: TextAlign.center,
-                  ),
-                  padding: EdgeInsets.all(15),
-                ),
-                Padding(
-                  child: Text(
-                    _text == "" ? "" : "Text:",
-                    style: TextStyle(fontSize: 18),
-                    textAlign: TextAlign.center,
-                  ),
-                  padding: EdgeInsets.all(15),
-                ),
-                Text(_text),
-              ],
-            ),
-          )),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Text to speech"),
+        actions: [
+          IconButton(
+              onPressed: () {
+                stop();
+              },
+              icon: const Icon(Icons.play_arrow_sharp)),
+          IconButton(
+              onPressed: () {
+              },
+              icon: const Icon(Icons.pause)),
+          IconButton(
+              onPressed: () {
+                controller.clear();
+              },
+              icon: const Icon(Icons.delete)),
+          IconButton(
+              onPressed: () {
+                stop();
+              },
+              icon: const Icon(Icons.stop)),
+          IconButton(
+              onPressed: () {
+                if (controller.text.isNotEmpty) {
+                  speak(text: controller.text);
+                }
+              },
+              icon: const Icon(Icons.mic))
+        ],
+      ),
+      body: Container(
+        padding: const EdgeInsets.all(20),
+        child: TextFormField(
+          controller: controller,
+          maxLines: MediaQuery.of(context).size.height.toInt(),
+          decoration: const InputDecoration(
+              border: InputBorder.none, label: Text("Text to read...")),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          pickDocument().then((value) async {
+            debugPrint(value);
+            if (value != '') {
+              PDFDoc doc = await PDFDoc.fromPath(value);
+
+              final text = await doc.text;
+
+              controller.text = text;
+            }
+          });
+        },
+        label: const Text("Pick a book"),
+      ),
     );
-  }
-
-  /// Picks a new PDF document from the device
-  Future _pickPDFText() async {
-    var filePickerResult = await FilePicker.platform.pickFiles();
-    if (filePickerResult != null) {
-      _pdfDoc = await PDFDoc.fromPath(filePickerResult.files.single.path!);
-      setState(() {});
-    }
-  }
-
-  /// Reads the book
-  Future _readWholeDoc() async {
-    if (_pdfDoc == null) {
-      return;
-    }
-    setState(() {
-      _buttonsEnabled = false;
-    });
-
-    String text = await _pdfDoc!.text;
-
-    setState(() {
-      _text = text;
-      _buttonsEnabled = true;
-    });
   }
 }
