@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:pdf_text/pdf_text.dart';
@@ -62,7 +65,14 @@ class _HomePageState extends State<HomePage> {
       await Future.delayed(const Duration(microseconds: 500));
     }
   } else {
-    await flutterTts.speak(text);
+    final random = Random();
+      final fileName = '${random.nextInt(999999)}_${DateTime.now().millisecondsSinceEpoch}.mp3'; // Generate a random file name
+      final file = File(fileName);
+
+      await flutterTts.speak(text);
+
+      // Save the speech as an MP3 file
+      await flutterTts.synthesizeToFile(text, fileName);
   }
   }
   catch(e){
